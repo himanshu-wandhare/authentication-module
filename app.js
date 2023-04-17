@@ -29,7 +29,8 @@ mongoose.connect("mongodb://127.0.0.1:27017/userDB");
 const userSchema = new mongoose.Schema({
     email: String,
     password: String,
-    googleId: String
+    googleId: String,
+    secret: String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -75,16 +76,6 @@ app.get("/login", (req, res) => {
     res.render("login");
 });
 
-app.get("/auth/google",
-  passport.authenticate('google', { scope: ["profile"] }));
-
-app.get("/auth/google/secrets", 
-  passport.authenticate('google', { failureRedirect: "/login" }),
-  (req, res) => {
-    // Successful authentication, redirect secrets.
-    res.redirect("/secrets");
-  });
-
 app.post("/login", (req, res) => {
     const user = new User({
         username: req.body.username,
@@ -96,7 +87,7 @@ app.post("/login", (req, res) => {
             res.redirect("/login");
         } else {
             passport.authenticate("local") (req, res, () => {
-                res.redirect("/secrets");
+                res.redirect("/submit");
             });
         }
     });
@@ -127,15 +118,52 @@ app.get("/logout", (req, res) => {
             res.redirect("/");
         }
     });
-})
+});
 
-app.get("/secrets", (req, res) => {
+app.get("/submit", (req, res) => {
     if(req.isAuthenticated()) {
-        res.render("secrets");
+        res.render("submit");
     } else {
         res.redirect("/login");
     }
 });
+
+app.post("/submit", (req, res) => {
+    const submittedSecret = req.body.secret;
+    User.findById(req.user.id).then(foundResult => {
+        if(foundResult) {
+            foundResult.secret = submittedSecret;
+            foundResult.save().then(() => {
+                res.redirect("/secrets");
+            }).catch(err => {
+                console.log(err);
+            });
+        }
+    }).catch(err => {
+        console.log(err);
+    });
+});
+
+app.get("/secrets", (req, res) => {
+    User.find({secret: {$ne: null}}).then(userSecret => {
+        console.log(userSecret)
+        if(userSecret) {
+            res.render("secrets", {userSecret: userSecret});
+        }
+    }).catch(err => {
+        console.log(err);
+    })
+});
+
+app.get("/auth/google",
+  passport.authenticate('google', { scope: ["profile"] }));
+
+app.get("/auth/google/secrets", 
+  passport.authenticate('google', { failureRedirect: "/login" }),
+  (req, res) => {
+    // Successful authentication, redirect secrets.
+    res.redirect("/submit");
+  });
 
 app.listen(process.env.PORT, () => {
     console.log("App is running on port 3000")
