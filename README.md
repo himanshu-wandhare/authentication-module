@@ -21,8 +21,8 @@ Make sure you have the following installed on your machine:
 **Cloning the Repository**
 
 ```bash
-git clone https://github.com/himanshu-wandhare/healthcare_carepluse.git
-cd healthcare
+git clone https://github.com/himanshu-wandhare/authentication-module.git
+cd authencation-module
 ```
 
 **Installation**
